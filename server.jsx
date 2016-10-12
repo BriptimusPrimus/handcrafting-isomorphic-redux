@@ -9,6 +9,7 @@ import { Provider }                     from 'react-redux';
 import * as reducers                    from 'reducers';
 import { applyMiddleware }              from 'redux';
 import promiseMiddleware                from 'lib/promiseMiddleware';
+import fetchComponentData               from 'lib/fetchComponentData';
 
 const app = express();
 
@@ -25,34 +26,43 @@ app.use((req, res) => {
 
     if (!renderProps) return res.status(404).end('Not found.');
     
-    const InitialComponent = (
-      <Provider store={store}>
-        <RoutingContext {...renderProps} />
-      </Provider>
-    );
+    function renderView() {
+      const InitialComponent = (
+        <Provider store={store}>
+          <RoutingContext {...renderProps} />
+        </Provider>
+      );
 
-    const initialState = store.getState();
+      const initialState = store.getState();
 
-    const componentHTML = renderToString(InitialComponent);
+      const componentHTML = renderToString(InitialComponent);
 
-    const HTML = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Isomorphic Redux Demo</title>
+      const HTML = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Isomorphic Redux Demo</title>
 
-          <script>
-            window.__INITIAL_STATE__ = ${JSON.stringify(initialState)};
-          </script>
-        </head>
-        <body>
-          <div id="react-view">${componentHTML}</div>
-          <script type="application/javascript" src="/bundle.js"></script>
-        </body>
-      </html>    
-    `
-    res.end(HTML);
+            <script>
+              window.__INITIAL_STATE__ = ${JSON.stringify(initialState)};
+            </script>
+          </head>
+          <body>
+            <div id="react-view">${componentHTML}</div>
+            <script type="application/javascript" src="/bundle.js"></script>
+          </body>
+        </html>
+      `;
+
+      return HTML;
+    }
+
+    fetchComponentData(store.dispatch, renderProps.components, renderProps.params)
+      .then(renderView)
+      .then(html => res.end(html))
+      .catch(err => res.end(err.message));
+
   });
 });
 
