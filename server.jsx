@@ -7,13 +7,15 @@ import routes                           from 'routes';
 import { createStore, combineReducers } from 'redux';
 import { Provider }                     from 'react-redux';
 import * as reducers                    from 'reducers';
+import { applyMiddleware }              from 'redux';
+import promiseMiddleware                from 'lib/promiseMiddleware';
 
 const app = express();
 
 app.use((req, res) => {
   const location = createLocation(req.url);
   const reducer  = combineReducers(reducers);
-  const store    = createStore(reducer);
+  const store = applyMiddleware(promiseMiddleware)(createStore)(reducer);
 
   match({ routes, location }, (err, redirectLocation, renderProps) => {
     if (err) { 
